@@ -3,6 +3,8 @@
 // includes/admin/
 require_once 'includes/admin/admin-bar.php';
 require_once 'includes/admin/category-options.php';
+require_once 'includes/admin/polski-podarek-panel.php';
+require_once 'includes/admin/polski-podarek-functions.php';
 
 // includes/media/
 require_once 'includes/media/thumbnails.php';
@@ -24,6 +26,7 @@ require_once 'includes/woocommerce/checkout-invoice-fields.php';
 require_once 'includes/woocommerce/product-queries.php';
 require_once 'includes/woocommerce/quantity-buttons.php';
 require_once 'includes/woocommerce/upsells-remove.php';
+require_once 'includes/woocommerce/alcohol-age-verification.php';
 
 // includes/content/
 require_once 'includes/content/breadcrumbs-home.php';
