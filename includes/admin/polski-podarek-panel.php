@@ -23,6 +23,38 @@ if (!function_exists('indemi_core_init')) {
         const FORM_ADMIN_MENU = 'pp_admin_menu';
 
         /**
+         * Obsługa masowej aktualizacji SEO
+         */
+        private static function handle_bulk_seo_update() {
+            
+            // Sprawdź nonce
+            if (!wp_verify_nonce($_POST['pp_bulk_seo_nonce'], 'pp_bulk_seo_update')) {
+                add_action('admin_notices', function() {
+                    echo '<div class="notice notice-error is-dismissible"><p>Błąd zabezpieczeń. Spróbuj ponownie.</p></div>';
+                });
+                return;
+            }
+
+            $updated_count = 0;
+            
+            if (isset($_POST['seo_text']) && is_array($_POST['seo_text'])) {
+                foreach ($_POST['seo_text'] as $product_id => $seo_text) {
+                    $product_id = intval($product_id);
+                    $seo_text = sanitize_textarea_field($seo_text);
+                    
+                    // Sprawdź czy produkt istnieje
+                    if (get_post_type($product_id) === 'product') {
+                        update_post_meta($product_id, 'seo_text', $seo_text);
+                        $updated_count++;
+                    }
+                }
+            }
+
+            add_action('admin_notices', function() use ($updated_count) {
+                echo '<div class="notice notice-success is-dismissible"><p>Zaktualizowano opisy SEO dla ' . $updated_count . ' produktów.</p></div>';
+            });
+        }
+            /*
          * Inicjalizacja panelu
          */
         public static function init() {
@@ -38,12 +70,35 @@ if (!function_exists('indemi_core_init')) {
          * Dodaje menu w panelu administracyjnym
          */
         public static function add_admin_menu() {
-            add_options_page(
-                'Konfiguracja Polski Podarek',
-                'Polski Podarek',
+            // Główne menu
+            add_menu_page(
+                'Konfiguracja Polski Podarek',     // Page title
+                'Polski Podarek',                  // Menu title
+                'manage_options',                  // Capability
+                'polski-podarek',                  // Menu slug
+                array(__CLASS__, 'admin_page'),    // Function
+                'dashicons-store',                 // Icon
+                30                                 // Position
+            );
+
+            // Podmenu - Ustawienia tematu
+            add_submenu_page(
+                'polski-podarek',
+                'Ustawienia tematu',
+                'Ustawienia tematu',
                 'manage_options',
                 'polski-podarek',
                 array(__CLASS__, 'admin_page')
+            );
+
+            // Podmenu - SEO Produktów
+            add_submenu_page(
+                'polski-podarek',
+                'SEO Produktów',
+                'SEO Produktów',
+                'manage_options',
+                'polski-podarek-seo',
+                array(__CLASS__, 'seo_products_page')
             );
         }
 
@@ -82,7 +137,193 @@ if (!function_exists('indemi_core_init')) {
                 }
                 ?>
             </div>
+        /**
+         * Strona SEO Produktów
+         */
+        public static function seo_products_page() {
+            
+            // Obsługa aktualizacji
+            if (isset($_POST['action']) && $_POST['action'] === 'bulk_update_seo') {
+                self::handle_bulk_seo_update();
+            }
+
+            // Pobierz produkty
+            $args = array(
+                'post_type' => 'product',
+                'posts_per_page' => 20,
+                'paged' => isset($_GET['paged']) ? intval($_GET['paged']) : 1,
+                'orderby' => 'title',
+                'order' => 'ASC'
+            );
+
+            if (isset($_GET['search']) && !empty($_GET['search'])) {
+                $args['s'] = sanitize_text_field($_GET['search']);
+            }
+
+            $products_query = new WP_Query($args);
+            ?>
+            <div class="wrap">
+                <h1>SEO Produktów</h1>
+                
+                <p class="description">
+                    Zarządzaj opisami SEO dla produktów WooCommerce. Te opisy mogą być używane w meta tagach, strukturalnych danych lub innych celach SEO.
+                </p>
+
+                <!-- Formularz wyszukiwania -->
+                <form method="get" action="" style="margin: 20px 0;">
+                    <input type="hidden" name="page" value="polski-podarek-seo">
+                    <p>
+                        <input type="text" 
+                               name="search" 
+                               value="<?php echo esc_attr(isset($_GET['search']) ? $_GET['search'] : ''); ?>" 
+                               placeholder="Szukaj produktów..."
+                               style="width: 300px;">
+                        <button type="submit" class="button">Szukaj</button>
+                        <?php if (isset($_GET['search'])): ?>
+                            <a href="?page=polski-podarek-seo" class="button">Wyczyść</a>
+                        <?php endif; ?>
+                    </p>
+                </form>
+
+                <?php if ($products_query->have_posts()): ?>
+                    <form method="post" action="">
+                        <?php wp_nonce_field('pp_bulk_seo_update', 'pp_bulk_seo_nonce'); ?>
+                        <input type="hidden" name="action" value="bulk_update_seo">
+                        
+                        <table class="wp-list-table widefat fixed striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">ID</th>
+                                    <th style="width: 30%;">Produkt</th>
+                                    <th style="width: 50%;">Opis SEO</th>
+                                    <th style="width: 80px;">Znaki</th>
+                                    <th style="width: 100px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while ($products_query->have_posts()): $products_query->the_post(); 
+                                    $product_id = get_the_ID();
+                                    $seo_text = get_post_meta($product_id, 'seo_text', true);
+                                    $char_count = strlen($seo_text);
+                                ?>
+                                    <tr>
+                                        <td><?php echo $product_id; ?></td>
+                                        <td>
+                                            <strong><?php echo get_the_title(); ?></strong>
+                                            <div class="row-actions">
+                                                <span><a href="<?php echo get_edit_post_link($product_id); ?>">Edytuj</a></span> |
+                                                <span><a href="<?php echo get_permalink($product_id); ?>" target="_blank">Zobacz</a></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <textarea name="seo_text[<?php echo $product_id; ?>]" 
+                                                      rows="3" 
+                                                      style="width: 100%;" 
+                                                      placeholder="Wprowadź opis SEO..."
+                                                      data-product-id="<?php echo $product_id; ?>"><?php echo esc_textarea($seo_text); ?></textarea>
+                                        </td>
+                                        <td>
+                                            <span class="char-count" data-for="<?php echo $product_id; ?>">
+                                                <?php echo $char_count; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($seo_text)): ?>
+                                                <span class="dashicons dashicons-yes-alt" style="color: #46b450;" title="Ma opis SEO"></span>
+                                            <?php else: ?>
+                                                <span class="dashicons dashicons-warning" style="color: #ffb900;" title="Brak opisu SEO"></span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+
+                        <p class="submit">
+                            <input type="submit" name="submit" class="button button-primary" value="Zapisz wszystkie zmiany">
+                        </p>
+                    </form>
+
+                    <!-- Paginacja -->
+                    <?php
+                    $big = 999999999;
+                    echo paginate_links(array(
+                        'base' => str_replace($big, '%#%', esc_url(get_pagenum_link($big))),
+                        'format' => '?paged=%#%',
+                        'current' => max(1, get_query_var('paged')),
+                        'total' => $products_query->max_num_pages,
+                        'add_args' => isset($_GET['search']) ? array('search' => $_GET['search']) : array()
+                    ));
+                    ?>
+
+                <?php else: ?>
+                    <div class="notice notice-info">
+                        <p>Nie znaleziono produktów.</p>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Statystyki -->
+                <?php
+                $total_products = wp_count_posts('product')->publish;
+                $products_with_seo = $wpdb->get_var("
+                    SELECT COUNT(*) 
+                    FROM {$wpdb->postmeta} pm 
+                    JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
+                    WHERE pm.meta_key = 'seo_text' 
+                    AND pm.meta_value != '' 
+                    AND p.post_type = 'product' 
+                    AND p.post_status = 'publish'
+                ");
+                $percentage = $total_products > 0 ? round(($products_with_seo / $total_products) * 100, 1) : 0;
+                ?>
+                
+                <div class="postbox" style="margin-top: 20px;">
+                    <div class="postbox-header">
+                        <h2>Statystyki SEO</h2>
+                    </div>
+                    <div class="inside">
+                        <p><strong>Produkty z opisem SEO:</strong> <?php echo $products_with_seo; ?> z <?php echo $total_products; ?> (<?php echo $percentage; ?>%)</p>
+                        <div style="background: #f0f0f1; height: 20px; border-radius: 10px; overflow: hidden;">
+                            <div style="background: #46b450; height: 100%; width: <?php echo $percentage; ?>%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JavaScript dla licznika znaków -->
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const textareas = document.querySelectorAll('textarea[data-product-id]');
+                    
+                    textareas.forEach(function(textarea) {
+                        const productId = textarea.getAttribute('data-product-id');
+                        const counter = document.querySelector('.char-count[data-for="' + productId + '"]');
+                        
+                        if (counter) {
+                            function updateCounter() {
+                                const length = textarea.value.length;
+                                counter.textContent = length;
+                                
+                                // Zmień kolor w zależności od długości
+                                if (length > 160) {
+                                    counter.style.color = '#dc3232'; // Czerwony
+                                } else if (length > 150) {
+                                    counter.style.color = '#ffb900'; // Pomarańczowy
+                                } else if (length > 50) {
+                                    counter.style.color = '#46b450'; // Zielony
+                                } else {
+                                    counter.style.color = '#666'; // Szary
+                                }
+                            }
+                            
+                            updateCounter();
+                            textarea.addEventListener('input', updateCounter);
+                        }
+                    });
+                });
+                </script>
+            </div>
             <?php
+            wp_reset_postdata();
         }
 
         /**

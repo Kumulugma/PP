@@ -27,6 +27,7 @@ require_once 'includes/woocommerce/product-queries.php';
 require_once 'includes/woocommerce/quantity-buttons.php';
 require_once 'includes/woocommerce/upsells-remove.php';
 require_once 'includes/woocommerce/alcohol-age-verification.php';
+require_once 'includes/woocommerce/seo-product-metabox.php';
 
 // includes/content/
 require_once 'includes/content/breadcrumbs-home.php';
