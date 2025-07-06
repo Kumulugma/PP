@@ -106,14 +106,14 @@ if (is_product()) { ?>
     <link rel="stylesheet" href="<?php bloginfo('template_url'); ?>/node_modules/owl.carousel/dist/assets/owl.theme.default.min.css">
     <script src="<?php bloginfo('template_url'); ?>/node_modules/owl.carousel/dist/owl.carousel.min.js"></script>
 
-    <script src="<?php bloginfo('template_url'); ?>/product.js?v=1.35"></script>
+    <script src="<?php bloginfo('template_url'); ?>/js/product.js?v=1.35"></script>
 
 <?php }
 if (is_page('najczesciej-zadawane-pytania')) { ?>
 
     <script src="<?php bloginfo('template_url'); ?>/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php bloginfo('template_url'); ?>/main.js?v=1.36"></script>
-    <script src="<?php bloginfo('template_url'); ?>/faq.js?v=1.35"></script>
+    <script src="<?php bloginfo('template_url'); ?>/js/main.js?v=1.36"></script>
+    <script src="<?php bloginfo('template_url'); ?>/js/faq.js?v=1.35"></script>
 
 
 <?php } else { ?>
@@ -122,7 +122,7 @@ if (is_page('najczesciej-zadawane-pytania')) { ?>
     <link rel="stylesheet" href="<?php bloginfo('template_url'); ?>/node_modules/owl.carousel/dist/assets/owl.carousel.min.css">
     <link rel="stylesheet" href="<?php bloginfo('template_url'); ?>/node_modules/owl.carousel/dist/assets/owl.theme.default.min.css">
     <script src="<?php bloginfo('template_url'); ?>/node_modules/owl.carousel/dist/owl.carousel.min.js"></script>
-    <script src="<?php bloginfo('template_url'); ?>/main.js?v=1.36"></script>
+    <script src="<?php bloginfo('template_url'); ?>/js/main.js?v=1.36"></script>
 
     <script>
         jQuery(document).ready(function () {
