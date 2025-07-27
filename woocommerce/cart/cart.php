@@ -177,51 +177,163 @@ do_action('woocommerce_before_cart'); ?>
         </table>
 
         <div class="row">
-        <div class="col-12 col-md-6">
-            <?php if (wc_coupons_enabled()) { ?>
-                    <p class="h6">Kupon rabatowy:</p>
-                <div class="coupon">
-                    <div class="input-group">
-                        <input type="text" name="coupon_code" class="form-control" id="coupon_code" value="" placeholder="<?php esc_attr_e('Wprowadź tutaj treść kuponu', 'woocommerce'); ?>"/>
-                        <button type="submit" id="coupon_submit"
-                                class="btn btn-primary <?php echo esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : ''); ?>"
-                                name="apply_coupon" value="<?php esc_attr_e('Zastosuj kupon rabatowy', 'woocommerce'); ?>"><?php esc_attr_e('Zastosuj kupon rabatowy', 'woocommerce'); ?></button>
-                        <?php do_action('woocommerce_cart_coupon'); ?>
-                    </div>
+    <div class="col-12 col-md-6">
+        <?php if (wc_coupons_enabled()) { ?>
+            <h6>Kupon rabatowy:</h6>
+            <div class="coupon">
+                <div class="native-coupon-form">
+                    <label for="coupon_code" class="screen-reader-text"><?php esc_html_e('Kod kuponu', 'woocommerce'); ?></label>
+                    <input type="text" 
+                           name="coupon_code" 
+                           class="form-control" 
+                           id="coupon_code" 
+                           value="" 
+                           placeholder="<?php esc_attr_e('Wprowadź kod kuponu', 'woocommerce'); ?>" />
+                    
+                    <button type="submit" 
+                            class="btn btn-primary" 
+                            name="apply_coupon" 
+                            value="<?php esc_attr_e('Zastosuj kupon', 'woocommerce'); ?>">
+                        <?php esc_html_e('Zastosuj kupon', 'woocommerce'); ?>
+                    </button>
+                    
+                    <?php do_action('woocommerce_cart_coupon'); ?>
                 </div>
-            <?php } ?>
+            </div>
+        <?php } ?>
 
-            <button type="submit" class="btn btn-primary <?php echo esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : ''); ?>" name="update_cart"
-                    value="<?php esc_attr_e('Update cart', 'woocommerce'); ?>"><?php esc_html_e('Update cart', 'woocommerce'); ?></button>
+        <button type="submit" 
+                class="btn btn-primary" 
+                name="update_cart"
+                value="<?php esc_attr_e('Aktualizuj koszyk', 'woocommerce'); ?>">
+            <?php esc_html_e('Aktualizuj koszyk', 'woocommerce'); ?>
+        </button>
 
-            <?php do_action('woocommerce_cart_actions'); ?>
+        <?php do_action('woocommerce_cart_actions'); ?>
+        <?php wp_nonce_field('woocommerce-cart', 'woocommerce-cart-nonce'); ?>
+    </div>
 
-            <?php wp_nonce_field('woocommerce-cart', 'woocommerce-cart-nonce'); ?>
-        </div>
+    <div class="col-12 col-md-6" id="cart_subtotal_small">
+        <h5><?php esc_html_e('Łączna wartość', 'woocommerce'); ?>: <?php wc_cart_totals_subtotal_html(); ?></h5>
+        
+        <?php 
+        // Pokaż zastosowane kupony
+        $applied_coupons = WC()->cart->get_applied_coupons();
+        if (!empty($applied_coupons)) {
+            echo '<div class="applied-coupons-summary">';
+            echo '<h6>Zastosowane kupony:</h6>';
+            echo '<ul class="coupon-summary-list">';
+            
+            foreach ($applied_coupons as $coupon_code) {
+                $coupon = new WC_Coupon($coupon_code);
+                $discount = WC()->cart->get_coupon_discount_amount($coupon_code);
+                
+                echo '<li class="coupon-summary-item">';
+                echo '<span class="coupon-code">' . esc_html($coupon_code) . '</span>';
+                echo '<span class="coupon-discount">-' . wc_price($discount) . '</span>';
+                echo '<a href="' . esc_url(wc_get_cart_remove_coupon_url($coupon_code)) . '" class="remove-coupon">×</a>';
+                echo '</li>';
+            }
+            
+            echo '</ul>';
+            echo '</div>';
+        }
+        ?>
 
-        <div class="col-12 col-md-6" id="cart_subtotal_small">
-            <p class="h5"><?php esc_html_e('Łączna wartość', 'woocommerce'); ?>: <?php wc_cart_totals_subtotal_html(); ?></p>
+        <?php do_action('woocommerce_proceed_to_checkout'); ?>
+    </div>
+</div>
 
+<style>
+/* Style dla natywnego formularza w koszyku */
+.native-coupon-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
 
-            <!--                <tr class="tax-total">-->
-            <!--                    --><?php //wc_cart_totals_order_total_html(); ?>
-            <!--                    <td data-title="--><?php //echo esc_attr(WC()->countries->tax_or_vat()); ?><!--">--><?php //wc_cart_totals_taxes_total_html(); ?><!--</td>-->
-            <!--                </tr>-->
+.native-coupon-form .form-control {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
 
+.native-coupon-form .btn {
+    white-space: nowrap;
+    padding: 8px 16px;
+}
 
-            <?php do_action('woocommerce_proceed_to_checkout'); ?>
+.applied-coupons-summary {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+}
 
-            <?php
-            /**
-             * Cart collaterals hook.
-             *
-             * @hooked woocommerce_cross_sell_display
-             * @hooked woocommerce_cart_totals - 10
-             */
-            // do_action('woocommerce_cart_collaterals');
-            ?>
-        </div>
-        </div>
+.applied-coupons-summary h6 {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 14px;
+}
+
+.coupon-summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.coupon-summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: white;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.coupon-summary-item:last-child {
+    margin-bottom: 0;
+}
+
+.coupon-code {
+    font-family: monospace;
+    font-weight: bold;
+    color: #571B33;
+}
+
+.coupon-discount {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.remove-coupon {
+    color: #dc3545;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background 0.3s;
+}
+
+.remove-coupon:hover {
+    background: #dc3545;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .native-coupon-form {
+        flex-direction: column;
+    }
+    
+    .native-coupon-form .btn {
+        width: 100%;
+    }
+}
+</style>
 
         <?php do_action('woocommerce_after_cart_contents'); ?>
 

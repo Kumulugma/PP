@@ -25,6 +25,7 @@ require_once 'includes/woocommerce/checkout-invoice-fields.php';
 require_once 'includes/woocommerce/product-queries.php';
 require_once 'includes/woocommerce/quantity-buttons.php';
 require_once 'includes/woocommerce/upsells-remove.php';
+require_once 'includes/woocommerce/coupon-loader.php';
 
 
 // includes/content/
