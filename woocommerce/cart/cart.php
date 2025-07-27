@@ -231,7 +231,7 @@ do_action('woocommerce_before_cart'); ?>
                 echo '<li class="coupon-summary-item">';
                 echo '<span class="coupon-code">' . esc_html($coupon_code) . '</span>';
                 echo '<span class="coupon-discount">-' . wc_price($discount) . '</span>';
-                echo '<a href="' . esc_url(wc_get_cart_remove_coupon_url($coupon_code)) . '" class="remove-coupon">×</a>';
+                //echo '<a href="' . esc_url(wc_get_cart_remove_coupon_url($coupon_code)) . '" class="remove-coupon">×</a>';
                 echo '</li>';
             }
             
