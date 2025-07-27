@@ -47,7 +47,18 @@ class PolskiPodarekCouponLoader {
      * Inicjalizacja wszystkich funkcji kuponów
      */
     public static function init_coupon_functions() {
-        remove_action('init', 'WC_Form_Handler::remove_coupon_action', 10);
+        
+        add_action('init', function() {
+        // Jeśli jesteśmy na URL z remove_coupon - PRZEKIERUJ na czysty koszyk
+        if (isset($_GET['remove_coupon']) && !isset($_POST['apply_coupon'])) {
+            wp_redirect(wc_get_cart_url());
+            exit;
+        }
+    }, 1);
+    
+    // WYŁĄCZ WooCommerce handlery
+    remove_action('init', 'WC_Form_Handler::remove_coupon_action', 10);
+    
         
         // Wyłącz JavaScript kuponów - używaj natywnych metod
         add_action('wp_enqueue_scripts', array(__CLASS__, 'disable_coupon_javascript'), 20);
@@ -391,7 +402,7 @@ class PolskiPodarekCouponLoader {
         add_filter('woocommerce_coupons_enabled', '__return_true');
         
         // Obsługa usuwania kuponów z URL
-        add_action('init', array(__CLASS__, 'handle_remove_coupon_url'));
+        //add_action('init', array(__CLASS__, 'handle_remove_coupon_url'));
     }
     
     /**
@@ -416,54 +427,75 @@ class PolskiPodarekCouponLoader {
      * Lepsze komunikaty dla kuponów
      */
     public static function better_coupon_messages($message, $message_code, $coupon) {
-        if (!$coupon) return $message;
-        
+    
+    // Bezpieczne pobieranie kodu kuponu
+    $coupon_code = '';
+    if (is_object($coupon) && method_exists($coupon, 'get_code')) {
+        $coupon_code = $coupon->get_code();
+        $coupon_obj = $coupon;
+    } elseif (is_string($coupon)) {
+        $coupon_code = $coupon;
         $coupon_obj = new WC_Coupon($coupon);
-        $discount_info = '';
-        
-        if ($coupon_obj->get_amount()) {
-            if ($coupon_obj->get_discount_type() == 'percent') {
-                $discount_info = ' (rabat ' . $coupon_obj->get_amount() . '%)';
-            } else {
-                $discount_info = ' (rabat ' . wc_price($coupon_obj->get_amount()) . ')';
-            }
-        }
-        
-        switch ($message_code) {
-            case WC_Coupon::WC_COUPON_SUCCESS:
-                return '🎉 Kupon "' . $coupon . '" został zastosowany' . $discount_info . '!';
-                
-            case WC_Coupon::WC_COUPON_REMOVED:
-                return '✅ Kupon "' . $coupon . '" został usunięty.';
-        }
-        
+    } else {
+        return $message; // fallback
+    }
+    
+    if (empty($coupon_code)) {
         return $message;
     }
+    
+    $discount_info = '';
+    if ($coupon_obj && $coupon_obj->get_amount()) {
+        if ($coupon_obj->get_discount_type() == 'percent') {
+            $discount_info = ' (rabat ' . $coupon_obj->get_amount() . '%)';
+        } else {
+            $discount_info = ' (rabat ' . wc_price($coupon_obj->get_amount()) . ')';
+        }
+    }
+    
+    switch ($message_code) {
+        case WC_Coupon::WC_COUPON_SUCCESS:
+            return '🎉 Kupon "' . esc_html($coupon_code) . '" został zastosowany' . $discount_info . '!';
+            
+        case WC_Coupon::WC_COUPON_REMOVED:
+            return '✅ Kupon "' . esc_html($coupon_code) . '" został usunięty.';
+    }
+    
+    return $message;
+}
     
     /**
      * Lepsze komunikaty błędów
      */
     public static function better_coupon_errors($error, $error_code, $coupon) {
-        
-        switch ($error_code) {
-            case WC_Coupon::E_WC_COUPON_NOT_EXIST:
-                return '❌ Kupon "' . $coupon->get_code() . '" nie istnieje.';
-                
-            case WC_Coupon::E_WC_COUPON_EXPIRED:
-                return '⏰ Kupon "' . $coupon->get_code() . '" wygasł.';
-                
-            case WC_Coupon::E_WC_COUPON_MIN_SPEND_LIMIT_NOT_MET:
-                return '💰 Minimalna kwota zamówienia: ' . wc_price($coupon->get_minimum_amount());
-                
-            case WC_Coupon::E_WC_COUPON_USAGE_LIMIT_REACHED:
-                return '🚫 Kupon "' . $coupon->get_code() . '" osiągnął limit użycia.';
-                
-            case WC_Coupon::E_WC_COUPON_ALREADY_APPLIED:
-                return '⚠️ Kupon "' . $coupon->get_code() . '" jest już zastosowany.';
-        }
-        
+    
+    // Bezpieczne pobieranie kodu kuponu
+    $coupon_code = '';
+    if (is_object($coupon) && method_exists($coupon, 'get_code')) {
+        $coupon_code = $coupon->get_code();
+    } elseif (is_string($coupon)) {
+        $coupon_code = $coupon;
+    } else {
+        return $error; // fallback
+    }
+    
+    if (empty($coupon_code)) {
         return $error;
     }
+    
+    switch ($error_code) {
+        case WC_Coupon::E_WC_COUPON_NOT_EXIST:
+            return '❌ Kupon "' . esc_html($coupon_code) . '" nie istnieje.';
+            
+        case WC_Coupon::E_WC_COUPON_EXPIRED:
+            return '⏰ Kupon "' . esc_html($coupon_code) . '" wygasł.';
+            
+        case WC_Coupon::E_WC_COUPON_ALREADY_APPLIED:
+            return '⚠️ Kupon "' . esc_html($coupon_code) . '" jest już zastosowany.';
+    }
+    
+    return $error;
+}
     
     /**
      * NAPRAWIONA - Wyświetla informacje o zastosowanych kuponach
